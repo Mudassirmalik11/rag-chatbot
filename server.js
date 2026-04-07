@@ -21,26 +21,35 @@ app.get("/", (req, res) => {
 app.post("/chat", async (req, res) => {
   const { question, history } = req.body;
 
-  res.setHeader("Content-Type", "text/event-stream");
-  res.setHeader("Cache-Control", "no-cache");
-  res.setHeader("Connection", "keep-alive");
-
-  const stream = await ragAnswer(question, history);
-
-  for await (const chunk of stream) {
-    const text = chunk.choices[0]?.delta?.content || "";
-    if (text) {
-      res.write(`data: ${JSON.stringify({ text })}\n\n`);
-    }
+  if (!question || typeof question !== "string") {
+    return res.status(400).json({ error: "Missing question in request body." });
   }
 
-  res.write(`data: ${JSON.stringify({ done: true })}\n\n`);
-  res.end();
+  if (!process.env.GROQ_API_KEY) {
+    return res.status(500).json({ error: "GROQ_API_KEY is not configured." });
+  }
+
+  try {
+    const stream = await ragAnswer(question, history);
+    let fullReply = "";
+
+    for await (const chunk of stream) {
+      const text = chunk.choices[0]?.delta?.content || "";
+      fullReply += text;
+    }
+
+    return res.json({ text: fullReply });
+  } catch (error) {
+    console.error("/chat error:", error?.message || error);
+    return res.status(500).json({ error: "Unable to generate response." });
+  }
 });
 
-app.listen(3000, () => {
-  console.log("RAG Chatbot running at http://localhost:3000");
-});
+if (!process.env.VERCEL) {
+  app.listen(3000, () => {
+    console.log("RAG Chatbot running at http://localhost:3000");
+  });
+}
 
 // Export for Vercel serverless
 export default app;
