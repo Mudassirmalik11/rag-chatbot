@@ -1,0 +1,8 @@
+.env
+node_modules
+chroma_data
+
+# Local Chroma vector database artifacts
+chroma/
+chroma.err
+chroma.out
