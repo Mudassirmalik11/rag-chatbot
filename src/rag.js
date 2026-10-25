@@ -34,7 +34,7 @@ ${context}
   ];
 
   const response = await groq.chat.completions.create({
-    model: "llama-3.3-70b-versatile",
+    model: process.env.Model,
     messages,
     temperature: 0.3,  // low temp = more factual, stays close to document
     max_tokens: 300,
